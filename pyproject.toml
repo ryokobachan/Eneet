@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eneet"
+dynamic = ["version"]
+description = "Nitter API client for fetching tweets without Twitter API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+keywords = ["twitter", "nitter", "api", "client", "scraper", "tweets", "social-media"]
+authors = [
+    {name = "ryokobachan", email = "fintics.org@gmail.com"}
+]
+maintainers = [
+    {name = "ryokobachan", email = "fintics.org@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "curl-cffi>=0.5.10",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ryokobachan/eneet"
+Repository = "https://github.com/ryokobachan/eneet"
+"Bug Reports" = "https://github.com/ryokobachan/eneet/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["eneet*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "eneet.__version__"}
