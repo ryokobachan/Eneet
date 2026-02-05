@@ -29,9 +29,6 @@ class NitterClient:
     """
     
     DEFAULT_INSTANCES = [
-        "https://nitter.moomoo.me",
-        "https://nitter.soopy.moe",
-        "https://nitter.kavin.rocks",
         "https://nitter.net",
         "https://nitter.poast.org",
         "https://nitter.privacydev.net",
@@ -46,48 +43,43 @@ class NitterClient:
         """
         self.instance = instance or self.DEFAULT_INSTANCES[0]
         self.timeout = timeout
-        self.session = requests.Session()
         
-        # Use full browser headers to bypass Nitter/Cloudflare protection
-        self.session.impersonate = "chrome120"
+        # Initialize session with impersonate
+        self.session = requests.Session(impersonate="chrome120")
+        
+        # Add only necessary headers that don't conflict with impersonate
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Priority': 'u=0, i',
-            'Sec-Ch-Ua': '"Chromium";v="144", "Not(A:Brand";v="24", "Google Chrome";v="144"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"macOS"',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-Site': 'same-origin',
             'Sec-Fetch-User': '?1',
             'Upgrade-Insecure-Requests': '1',
             'Cache-Control': 'max-age=0',
+            'Referer': self.instance + '/',
         })
+        
+        # Warm up session (get cookies)
+        try:
+            print(f"DEBUG: Warming up session at {self.instance}...")
+            self.session.get(self.instance, timeout=10)
+            print("DEBUG: Session warmed up.")
+        except Exception as e:
+            print(f"WARNING: Failed to warm up session: {e}")
     
     def _make_request(self, url: str) -> requests.Response:
-        """Make HTTP request with error handling.
-        
-        Args:
-            url: URL to fetch
-            
-        Returns:
-            Response object
-            
-        Raises:
-            FetchError: If request fails
-        """
+        """Make HTTP request with error handling."""
         try:
             response = self.session.get(url, timeout=self.timeout)
             
-            # Raise for standard HTTP errors if we want strict checking, 
-            # but Nitter returns 404 for "User not found" which we handle in caller
             if response.status_code >= 400:
                 if response.status_code == 404:
                     return response
-                raise FetchError(f"HTTP Error {response.status_code} for {url}")
+                # Include response text for debugging
+                snippet = response.text[:200] if response.text else "No content"
+                raise FetchError(f"HTTP Error {response.status_code} for {url}. Content: {snippet}")
                 
             return response
         except requests.RequestsError as e:

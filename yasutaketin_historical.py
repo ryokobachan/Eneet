@@ -48,11 +48,11 @@ def generate_periods():
     # Latest tweets are usually fetched by the main scraper.
     # This script is for historical backfill.
     
-    # Start checking from: 2026-02-01 (Current)
-    # Go back to: 2010-01-01
+    # Start checking from: Today
+    # Go back to: 2025-01-01
     
-    current = datetime(2026, 2, 1)
-    end_limit = datetime(2010, 1, 1)
+    current = datetime.now()
+    end_limit = datetime(2025, 1, 1)
     
     periods = []
     while current > end_limit:
@@ -116,8 +116,8 @@ def main():
                 
                 if "429" in error_msg:
                     # Exponential backoff for Rate Limits
-                    # 1st try: 2 min, 2nd: 4 min, 3rd: 8 min...
-                    wait_time = 120 * (2 ** (attempt - 1))
+                    # 1st try: 30s, 2nd: 60s, 3rd: 120s...
+                    wait_time = 30 * (2 ** (attempt - 1))
                     if wait_time > 900: wait_time = 900 # Cap at 15 mins
                     
                     print(f"⚠️ RATE LIMITED on nitter.net. Sleeping for {wait_time} seconds ({wait_time/60:.1f} min)...")
