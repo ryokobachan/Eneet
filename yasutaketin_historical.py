@@ -7,12 +7,18 @@ from dataclasses import asdict
 from eneet import NitterClient
 
 USERNAME = "yasutaketin"
-DATA_FILE = f"tweets_{USERNAME}.jsonl"
+DATA_FILE = f"posts_{USERNAME}.jsonl"
 
 # In-memory ID tracking
 SEEN_IDS = set()
 
 def load_ids():
+    # Rename old file if exists
+    old_file = f"tweets_{USERNAME}.jsonl"
+    if os.path.exists(old_file) and not os.path.exists(DATA_FILE):
+        print(f"Renaming {old_file} to {DATA_FILE}...")
+        os.rename(old_file, DATA_FILE)
+        
     print(f"Loading existing IDs from {DATA_FILE}...")
     if not os.path.exists(DATA_FILE): return
     with open(DATA_FILE, 'r', encoding='utf-8') as f:
