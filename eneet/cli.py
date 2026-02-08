@@ -238,7 +238,7 @@ class HistoricalFetcher:
                     total_saved += cumulative_saved
                     status = f"[{i+1}/{len(periods)}] {since} ~ {until} | done | +{cumulative_saved} (total: {total_saved})"
                     print(f"\r{status:<{status_width}}")
-                    time.sleep(random.uniform(8, 15))
+                    time.sleep(random.uniform(15, 25))
                     break
 
                 except Exception as e:
@@ -320,8 +320,8 @@ Examples:
     parser.add_argument(
         "--period",
         type=int,
-        default=5,
-        help="Days per search period (default: 5)",
+        default=1,
+        help="Days per search period (default: 1)",
     )
     parser.add_argument(
         "--instance",

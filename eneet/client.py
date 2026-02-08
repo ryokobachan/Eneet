@@ -342,8 +342,8 @@ class NitterClient:
                 break
                 
             if pages_fetched > 0:
-                # Longer delay to avoid 429 rate limiting on nitter.net
-                time.sleep(random.uniform(8.0, 15.0))
+                # Delay between pages to avoid 429 rate limiting
+                time.sleep(random.uniform(3.0, 6.0))
 
             # Build Search URL
             # https://nitter.net/search?f=tweets&q=...&cursor=...
