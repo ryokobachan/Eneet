@@ -78,23 +78,24 @@ class NitterClient:
         except requests.RequestsError as e:
             raise FetchError(f"Failed to fetch {url}: {str(e)}")
     
-    def _parse_date(self, date_str: str) -> datetime:
+    def _parse_date(self, date_str: str) -> Optional[datetime]:
         """Parse Nitter date string to datetime.
-        
+
         Args:
             date_str: Date string from Nitter
-            
+
         Returns:
-            Parsed datetime object
+            Parsed datetime object, or None if parsing fails
         """
+        if not date_str:
+            return None
         # Nitter uses format like "Jan 1, 2024 · 10:30 AM UTC"
         try:
             # Remove the " · " separator and "UTC"
             date_str = date_str.replace(' ·', '').replace(' UTC', '').strip()
             return datetime.strptime(date_str, "%b %d, %Y %I:%M %p")
         except Exception:
-            # Fallback: return current time if parsing fails
-            return datetime.now()
+            return None
     
     def _parse_count(self, count_str: str) -> int:
         """Parse count string (e.g., '1.2K', '5M') to integer.
@@ -256,8 +257,12 @@ class NitterClient:
             for item in timeline_items:
                 try:
                     tweet = self._parse_tweet(item, username)
-                    if not replies and tweet.is_reply: continue
-                    if not retweets and tweet.is_retweet: continue
+                    if tweet is None:
+                        continue
+                    if not replies and tweet.is_reply:
+                        continue
+                    if not retweets and tweet.is_retweet:
+                        continue
                     page_tweets.append(tweet)
                 except Exception:
                     continue
@@ -363,10 +368,11 @@ class NitterClient:
             page_tweets = []
             for item in timeline_items:
                 try:
-                    # In search results, we pass None as expected_username 
+                    # In search results, we pass None as expected_username
                     # so the parser extracts it from the tweet header
                     tweet = self._parse_tweet(item, None)
-                    page_tweets.append(tweet)
+                    if tweet is not None:
+                        page_tweets.append(tweet)
                 except Exception:
                     continue
             
@@ -427,18 +433,21 @@ class NitterClient:
             max_pages=max_pages
         ))
 
-    def _parse_tweet(self, item_soup: BeautifulSoup, expected_username: Optional[str]) -> Tweet:
+    def _parse_tweet(self, item_soup: BeautifulSoup, expected_username: Optional[str]) -> Optional[Tweet]:
         """Parse a single tweet from HTML.
-        
+
         Args:
             item_soup: BeautifulSoup element of the tweet
             expected_username: The username we expect (if known). If None, extract from tweet.
+
+        Returns:
+            Tweet object, or None if parsing fails (missing ID or date)
         """
         # Get tweet link for ID
         tweet_link = item_soup.find('a', class_='tweet-link')
         tweet_id = ''
         tweet_url = ''
-        
+
         if tweet_link and 'href' in tweet_link.attrs:
             href = tweet_link['href']
             tweet_url = urljoin(self.instance, href)
@@ -446,22 +455,30 @@ class NitterClient:
             match = re.search(r'/status/(\d+)', href)
             if match:
                 tweet_id = match.group(1)
-        
+
+        # Skip if no ID found
+        if not tweet_id:
+            return None
+
         # Get username and display name
         username_elem = item_soup.find('a', class_='username')
         username = username_elem.text.strip().lstrip('@') if username_elem else expected_username
-        
+
         fullname_elem = item_soup.find('a', class_='fullname')
         display_name = fullname_elem.text.strip() if fullname_elem else username
-        
+
         # Get tweet text
         tweet_content = item_soup.find('div', class_='tweet-content')
         text = tweet_content.get_text(separator=' ', strip=True) if tweet_content else ''
-        
+
         # Get date
         tweet_date_elem = item_soup.find('span', class_='tweet-date')
         date_str = tweet_date_elem.find('a')['title'] if tweet_date_elem and tweet_date_elem.find('a') else ''
-        tweet_date = self._parse_date(date_str) if date_str else datetime.now()
+        tweet_date = self._parse_date(date_str)
+
+        # Skip if date parsing failed
+        if tweet_date is None:
+            return None
         
         # Get stats (likes, retweets, replies)
         stats = item_soup.find('div', class_='tweet-stats')
@@ -542,14 +559,15 @@ class NitterClient:
         for item in timeline_items:
             if len(tweets) >= limit:
                 break
-            
+
             try:
                 # Extract username from the tweet
                 username_elem = item.find('a', class_='username')
                 username = username_elem.text.strip().lstrip('@') if username_elem else 'unknown'
-                
+
                 tweet = self._parse_tweet(item, username)
-                tweets.append(tweet)
+                if tweet is not None:
+                    tweets.append(tweet)
             
             except Exception:
                 continue
