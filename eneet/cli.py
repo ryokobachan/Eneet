@@ -210,14 +210,16 @@ class HistoricalFetcher:
         print(f"Generated {len(periods)} periods to search.")
         print("Starting fetch...\n")
 
+        total_saved = 0
         for i, (since, until) in enumerate(periods):
             query = self.build_query(since, until)
-            print(f"[{i+1}/{len(periods)}] Searching: {query}")
 
             attempt = 0
             max_attempts = 5
             cumulative_fetched = 0
             cumulative_saved = 0
+            last_date = None
+            status_width = 80  # For clearing line
 
             while attempt < max_attempts:
                 try:
@@ -226,33 +228,32 @@ class HistoricalFetcher:
                         saved = self.save_tweet(tweet)
                         cumulative_saved += saved
 
-                        if saved:
-                            text_preview = tweet.text[:50].replace('\n', ' ')
-                            print(f"  + {tweet.date.strftime('%Y-%m-%d %H:%M')} - {text_preview}...")
+                        # Update status line with current date
+                        current_date = tweet.date.strftime('%Y-%m-%d')
+                        if current_date != last_date:
+                            last_date = current_date
+                            status = f"[{i+1}/{len(periods)}] {since} ~ {until} | {current_date} | saved: {total_saved + cumulative_saved}"
+                            print(f"\r{status:<{status_width}}", end="", flush=True)
 
-                        if cumulative_fetched % 20 == 0:
-                            print(f"  .. fetched {cumulative_fetched}, saved {cumulative_saved} new")
-
-                    print(f"   => Done! Fetched {cumulative_fetched}, saved {cumulative_saved} new.")
-                    time.sleep(random.uniform(10, 20))
+                    total_saved += cumulative_saved
+                    status = f"[{i+1}/{len(periods)}] {since} ~ {until} | done | +{cumulative_saved} (total: {total_saved})"
+                    print(f"\r{status:<{status_width}}")
+                    time.sleep(random.uniform(8, 15))
                     break
 
                 except Exception as e:
                     attempt += 1
                     error_msg = str(e)
-                    print(f"Error (Attempt {attempt}/{max_attempts}): {error_msg}")
-                    print(f"   (Progress: fetched {cumulative_fetched}, saved {cumulative_saved})")
+                    print(f"\n  Error ({attempt}/{max_attempts}): {error_msg[:80]}")
 
                     if "429" in error_msg:
                         wait_time = min(60 * (2 ** (attempt - 1)), 900)
-                        print(f"Rate limited. Waiting {wait_time}s...")
+                        print(f"  Rate limited. Waiting {wait_time}s...")
                         time.sleep(wait_time)
                     else:
                         time.sleep(60)
             else:
-                print(f"Failed period {since}~{until} after {max_attempts} attempts.")
-
-            print()
+                print(f"\n  Failed {since}~{until} after {max_attempts} attempts.")
 
 
 def parse_date(date_str: str) -> datetime:
@@ -319,8 +320,8 @@ Examples:
     parser.add_argument(
         "--period",
         type=int,
-        default=10,
-        help="Days per search period (default: 10)",
+        default=5,
+        help="Days per search period (default: 5)",
     )
     parser.add_argument(
         "--instance",
