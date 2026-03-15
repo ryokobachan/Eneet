@@ -56,7 +56,8 @@ class NitterClient:
             self.session.get(self.instance, timeout=10)
             time.sleep(random.uniform(0.5, 1.0))
         except Exception as e:
-            print(f"WARNING: Failed to warm up session: {e}")
+            import sys
+            print(f"WARNING: Failed to warm up session: {e}", file=sys.stderr)
 
     def reset_session(self):
         """Reset session to clear any rate limiting state."""
@@ -79,8 +80,8 @@ class NitterClient:
                     if attempt < max_retries:
                         # Exponential backoff with jitter
                         wait_time = (2 ** attempt) * 5 + random.uniform(1, 5)
-                        print(f"\n429 received for {url}")
-                        print(f"  Waiting {wait_time:.1f}s before retry ({attempt + 1}/{max_retries})...")
+                        import sys
+                        print(f"ERROR: 429 received for {url}. Waiting {wait_time:.1f}s ({attempt + 1}/{max_retries})...", file=sys.stderr)
                         time.sleep(wait_time)
                         # Reset session to get fresh cookies
                         self._init_session()
@@ -100,7 +101,8 @@ class NitterClient:
             except requests.RequestsError as e:
                 if attempt < max_retries:
                     wait_time = (2 ** attempt) * 2 + random.uniform(0.5, 2)
-                    print(f"Request failed, waiting {wait_time:.1f}s before retry ({attempt + 1}/{max_retries})...")
+                    import sys
+                    print(f"ERROR: Request failed, waiting {wait_time:.1f}s ({attempt + 1}/{max_retries})...", file=sys.stderr)
                     time.sleep(wait_time)
                     continue
                 raise FetchError(f"Failed to fetch {url}: {str(e)}")
